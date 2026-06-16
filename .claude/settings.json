@@ -1,0 +1,54 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(src/StableApi/appsettings.Production.json)",
+      "Write(src/StableApi/appsettings.Production.json)",
+      "Edit(**/*.g.cs)",
+      "Write(**/*.g.cs)",
+      "Edit(**/bin/**)",
+      "Write(**/bin/**)",
+      "Edit(**/obj/**)",
+      "Write(**/obj/**)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit(src/.*\\.cs)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet format src/StableApi/StableApi.csproj --verbosity quiet 2>&1 | tail -5 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(src/.*\\.cs)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet format src/StableApi/StableApi.csproj --verbosity quiet 2>&1 | tail -5 || true"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit(tests/.*\\.cs)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet test tests/StableApi.Tests/StableApi.Tests.csproj --verbosity minimal 2>&1 | tail -20"
+          }
+        ]
+      },
+      {
+        "matcher": "Write(tests/.*\\.cs)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "dotnet test tests/StableApi.Tests/StableApi.Tests.csproj --verbosity minimal 2>&1 | tail -20"
+          }
+        ]
+      }
+    ]
+  }
+}
