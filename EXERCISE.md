@@ -76,6 +76,8 @@ If anything fails to build, fix it before moving on — raise your hand.
 
 **Commands you'll lean on:** `/help` · `/plan` · `/rewind` · `/clear` · `/compact` · `/context` · `/usage` · `/init` · `/memory` · `Esc` (stop mid-run, keep context) · `Shift+Tab` (cycle approval modes).
 
+**Mid-task side notes — `/btw`:** While Claude is working you can type `/btw <your note>` to inject a correction or preference without interrupting the task flow. Claude receives it as a message and adjusts — useful for small steers like *`/btw use .temp not temp`* without stopping and re-prompting from scratch.
+
 ---
 
 ## Part 1 — Onboard and harness the repo (50 min)
@@ -112,6 +114,14 @@ it should have per our code-style.md.
 ```
 
 ✅ **Acceptance:** Claude finds the three intentional issues — `GetById` returns 200 for a missing horse, `Create` returns 200 instead of 201 + Location, `Delete` returns 200 instead of 204 — plus the manual validation in `Create`. **Keep this list — you'll fix them in Part 2.4.**
+
+Now persist the findings so they survive a `/clear` or a teammate's fresh session:
+
+```
+Save these issues to a file .temp/known-issues.md
+```
+
+✅ **Acceptance:** `.temp/known-issues.md` exists with each issue listed by method, what's wrong, and the required HTTP behaviour. The `.temp/` folder is gitignored — it's your personal scratch space for the session, not committed. This is also a useful pattern for real work — a review session's output becomes a durable artefact you can carry across `/clear` boundaries.
 
 ### 1.3 — Plan mode: look before you leap (10 min)
 
@@ -230,7 +240,7 @@ non-existent horse returns 404. Follow our existing test patterns.
 
 ### 2.4 — Refactor the three issues, one at a time (15 min)
 
-Recall the issues from Part 1.2 and fix them **individually**, verifying each:
+Open `.temp/known-issues.md` from Part 1.2 and fix the issues **individually**, verifying each:
 
 ```
 Earlier we found three quality issues in HorsesController. Fix them one at a

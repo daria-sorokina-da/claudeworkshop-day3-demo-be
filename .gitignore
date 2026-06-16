@@ -67,3 +67,7 @@ nunit-*.xml
 # OS
 .DS_Store
 Thumbs.db
+
+# Workshop scratch files — personal session notes, not committed
+.temp/*
+!.temp/.gitkeep
