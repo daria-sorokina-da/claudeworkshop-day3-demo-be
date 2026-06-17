@@ -10,6 +10,8 @@ public interface IHorseService
     Horse? Update(int id, UpdateHorseRequest request);
     bool Delete(int id);
 
+    Horse? Retire(int id, RetireHorseRequest request);
+
     /// <summary>Returns a page of horses. Page is 1-based.</summary>
     IEnumerable<Horse> GetPaged(int page, int pageSize);
 }

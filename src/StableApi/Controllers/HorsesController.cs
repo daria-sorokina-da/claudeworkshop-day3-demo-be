@@ -3,6 +3,7 @@ namespace StableApi.Controllers;
 using StableApi.Models;
 using StableApi.Services;
 using Microsoft.AspNetCore.Mvc;
+using FluentValidation;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -60,6 +61,18 @@ public class HorsesController : ControllerBase
         }
 
         return Ok(horse);
+    }
+
+    [HttpPost("{id}/retire")]
+    public async Task<IActionResult> Retire(int id, [FromBody] RetireHorseRequest request,
+        [FromServices] IValidator<RetireHorseRequest> validator)
+    {
+        var result = await validator.ValidateAsync(request);
+        if (!result.IsValid)
+            return ValidationProblem(new ValidationProblemDetails(result.ToDictionary()));
+
+        var horse = _service.Retire(id, request);
+        return horse is null ? NotFound() : Ok(horse);
     }
 
     [HttpDelete("{id}")]

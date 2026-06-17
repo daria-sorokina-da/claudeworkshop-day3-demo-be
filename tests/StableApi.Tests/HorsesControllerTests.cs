@@ -3,6 +3,7 @@ namespace StableApi.Tests;
 using StableApi.Controllers;
 using StableApi.Models;
 using StableApi.Services;
+using StableApi.Validators;
 using Microsoft.AspNetCore.Mvc;
 using Moq;
 using Xunit;
@@ -104,5 +105,38 @@ public class HorsesControllerTests
         var result = _controller.GetAll(page: 0);
 
         Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Retire_ValidRequest_ReturnsOk()
+    {
+        var request = new RetireHorseRequest("Too old to race competitively");
+        var horse = new Horse { Id = 1, Name = "Moonbeam", IsActive = false, RetirementReason = request.Reason };
+        _service.Setup(s => s.Retire(1, request)).Returns(horse);
+
+        var result = await _controller.Retire(1, request, new RetireHorseRequestValidator());
+
+        Assert.IsType<OkObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Retire_ReasonTooShort_ReturnsBadRequest()
+    {
+        var request = new RetireHorseRequest("Hi");
+
+        var result = await _controller.Retire(1, request, new RetireHorseRequestValidator());
+
+        Assert.IsType<BadRequestObjectResult>(result);
+    }
+
+    [Fact]
+    public async Task Retire_NonExistentId_ReturnsNotFound()
+    {
+        var request = new RetireHorseRequest("Too old to race competitively");
+        _service.Setup(s => s.Retire(99, request)).Returns((Horse?)null);
+
+        var result = await _controller.Retire(99, request, new RetireHorseRequestValidator());
+
+        Assert.IsType<NotFoundResult>(result);
     }
 }
