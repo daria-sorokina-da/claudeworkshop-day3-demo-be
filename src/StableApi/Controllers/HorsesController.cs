@@ -71,10 +71,14 @@ public class HorsesController : ControllerBase
     [HttpPost("{id}/retire")]
     public IActionResult Retire(int id, [FromBody] RetireHorseRequest request)
     {
+        var validation = _retireValidator.Validate(request);
+        if (!validation.IsValid)
+            return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
+
         if (_service.GetById(id) is null) return NotFound();
 
         _service.Retire(id, request);
-        return StatusCode(201);
+        return NoContent();
     }
 
     [HttpDelete("{id}")]

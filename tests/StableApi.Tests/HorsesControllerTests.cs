@@ -126,7 +126,7 @@ public class HorsesControllerTests
     }
 
     [Fact]
-    public void Retire_ValidRequest_ReturnsCreated()
+    public void Retire_ValidRequest_ReturnsNoContent()
     {
         var request = new RetireHorseRequest("Retired due to age");
         _retireValidator.Setup(v => v.Validate(request)).Returns(new ValidationResult());
@@ -134,8 +134,7 @@ public class HorsesControllerTests
 
         var result = _controller.Retire(1, request);
 
-        Assert.IsType<StatusCodeResult>(result);
-        Assert.Equal(201, ((StatusCodeResult)result).StatusCode);
+        Assert.IsType<NoContentResult>(result);
     }
 
     [Fact]
