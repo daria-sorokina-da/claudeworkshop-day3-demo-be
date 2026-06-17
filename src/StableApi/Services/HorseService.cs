@@ -71,7 +71,7 @@ public class HorseService : IHorseService
     {
         return _horses.Values
             .OrderBy(h => h.Id)
-            .Skip(page * pageSize)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize);
     }
 }
