@@ -58,9 +58,11 @@ git switch -c nova-none-stables-workshop     # feature branch: lowercase, card-f
 ```bash
 dotnet build
 dotnet test                          # all 9 tests should pass
-dotnet run --project src/StableApi   # http://localhost:5000/swagger
+dotnet run --project src/StableApi
 claude --version                     # confirm CLI + auth
 ```
+
+Swagger UI → [http://localhost:5000/swagger](http://localhost:5000/swagger)
 
 In real work the branch name starts with your **story** card number (e.g. `nova-1234-add-retire-endpoint`); there's no card here, so we use `nova-none`. The repo already ships a `.gitignore`, so build output stays out of your commits — just `git add . && git commit` from the repo root as you go.
 
@@ -136,6 +138,8 @@ anything yet.
 ```
 
 Steer the plan in plain language before approving (e.g. *"Just stick to architecture, domain model, and test patterns — keep it short and factual."*). This separates **thinking from doing**.
+
+> **Where do plan files go?** By default Claude saves them to `~/.claude/plans/` (global). This repo sets `"plansDirectory": ".temp"` in `.claude/settings.json`, so plans land in `.temp/` alongside your other session scratch files — gitignored, easy to find, and gone when you're done.
 
 ✅ **Acceptance:** You see and shape the intent *before* any file changes.
 
@@ -288,7 +292,7 @@ Now fix the bug so the test passes.
 > Then draft the pull request you'd open against `develop`:
 > ```
 > Draft a PR description for this branch with sections: Summary, What changed,
-> How tested, Risks / follow-ups. Don't modify any files.
+> How tested, Risks / follow-ups. Save it to .temp/pr-description.md.
 > ```
 > In real work you'd push the feature branch and open the PR in GitHub (reviewed via reviewable.io, merged with **Rebase and Delete** to keep history linear). We're not pushing to the shared repo during the lab — drafting the description is the exercise.
 

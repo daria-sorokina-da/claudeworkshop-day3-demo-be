@@ -1,4 +1,5 @@
 {
+  "plansDirectory": ".temp",
   "permissions": {
     "deny": [
       "Edit(src/StableApi/appsettings.Production.json)",
