@@ -13,12 +13,13 @@ public class HorsesControllerTests
 {
     private readonly Mock<IHorseService> _service = new();
     private readonly Mock<IValidator<CreateHorseRequest>> _createValidator = new();
+    private readonly Mock<IValidator<UpdateHorseRequest>> _updateValidator = new();
     private readonly Mock<IValidator<RetireHorseRequest>> _retireValidator = new();
     private readonly HorsesController _controller;
 
     public HorsesControllerTests()
     {
-        _controller = new HorsesController(_service.Object, _createValidator.Object, _retireValidator.Object);
+        _controller = new HorsesController(_service.Object, _createValidator.Object, _updateValidator.Object, _retireValidator.Object);
     }
 
     [Fact]
@@ -54,7 +55,8 @@ public class HorsesControllerTests
 
         var result = _controller.Create(request);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, objectResult.StatusCode);
     }
 
     [Fact]
@@ -66,7 +68,8 @@ public class HorsesControllerTests
 
         var result = _controller.Create(request);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, objectResult.StatusCode);
     }
 
     [Fact]
@@ -74,6 +77,7 @@ public class HorsesControllerTests
     {
         var request = new UpdateHorseRequest("Moonbeam II", "moonbeam@enchantedstables.com", "Thoroughbred");
         var horse = new Horse { Id = 1, Name = "Moonbeam II" };
+        _updateValidator.Setup(v => v.Validate(request)).Returns(new ValidationResult());
         _service.Setup(s => s.Update(1, request)).Returns(horse);
 
         var result = _controller.Update(1, request);
@@ -84,9 +88,11 @@ public class HorsesControllerTests
     [Fact]
     public void Update_NonExistentHorse_ReturnsNotFound()
     {
-        _service.Setup(s => s.Update(99, It.IsAny<UpdateHorseRequest>())).Returns((Horse?)null);
+        var request = new UpdateHorseRequest("X", "x@enchantedstables.com", "Shetland");
+        _updateValidator.Setup(v => v.Validate(request)).Returns(new ValidationResult());
+        _service.Setup(s => s.Update(99, request)).Returns((Horse?)null);
 
-        var result = _controller.Update(99, new UpdateHorseRequest("X", "x@enchantedstables.com", "Shetland"));
+        var result = _controller.Update(99, request);
 
         Assert.IsType<NotFoundResult>(result);
     }
@@ -141,7 +147,8 @@ public class HorsesControllerTests
 
         var result = _controller.Retire(1, request);
 
-        Assert.IsType<BadRequestObjectResult>(result);
+        var objectResult = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(400, objectResult.StatusCode);
     }
 
     [Fact]

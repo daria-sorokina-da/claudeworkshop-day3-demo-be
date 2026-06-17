@@ -11,12 +11,14 @@ public class HorsesController : ControllerBase
 {
     private readonly IHorseService _service;
     private readonly IValidator<CreateHorseRequest> _createValidator;
+    private readonly IValidator<UpdateHorseRequest> _updateValidator;
     private readonly IValidator<RetireHorseRequest> _retireValidator;
 
-    public HorsesController(IHorseService service, IValidator<CreateHorseRequest> createValidator, IValidator<RetireHorseRequest> retireValidator)
+    public HorsesController(IHorseService service, IValidator<CreateHorseRequest> createValidator, IValidator<UpdateHorseRequest> updateValidator, IValidator<RetireHorseRequest> retireValidator)
     {
         _service = service;
         _createValidator = createValidator;
+        _updateValidator = updateValidator;
         _retireValidator = retireValidator;
     }
 
@@ -55,11 +57,13 @@ public class HorsesController : ControllerBase
     [HttpPut("{id}")]
     public IActionResult Update(int id, [FromBody] UpdateHorseRequest request)
     {
+        var validation = _updateValidator.Validate(request);
+        if (!validation.IsValid)
+            return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
+
         var horse = _service.Update(id, request);
         if (horse is null)
-        {
             return NotFound();
-        }
 
         return Ok(horse);
     }

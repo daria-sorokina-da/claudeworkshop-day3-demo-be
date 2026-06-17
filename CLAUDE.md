@@ -21,10 +21,12 @@ The service layer uses an in-memory `Dictionary<int, Horse>` with auto-increment
 **Horse** — the only aggregate root:
 - `Id` (int, auto-assigned), `Name`, `OwnerEmail`, `Breed` (string)
 - `RegisteredAt` (DateTime, set on creation), `IsActive` (bool, soft-delete flag)
+- `RetirementReason` (string?, set on retirement)
 
 **Request DTOs** (C# records, no behavior):
 - `CreateHorseRequest(Name, OwnerEmail, Breed)`
 - `UpdateHorseRequest(Name, OwnerEmail, Breed)`
+- `RetireHorseRequest(Reason)`
 
 ## Running the Project
 
