@@ -8,4 +8,5 @@ public class Horse
     public string Breed { get; set; } = string.Empty;
     public DateTime RegisteredAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? RetirementReason { get; set; }
 }

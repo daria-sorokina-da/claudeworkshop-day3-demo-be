@@ -1,5 +1,6 @@
 namespace StableApi.Controllers;
 
+using FluentValidation;
 using StableApi.Models;
 using StableApi.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -9,8 +10,17 @@ using Microsoft.AspNetCore.Mvc;
 public class HorsesController : ControllerBase
 {
     private readonly IHorseService _service;
+    private readonly IValidator<CreateHorseRequest> _createValidator;
+    private readonly IValidator<UpdateHorseRequest> _updateValidator;
+    private readonly IValidator<RetireHorseRequest> _retireValidator;
 
-    public HorsesController(IHorseService service) => _service = service;
+    public HorsesController(IHorseService service, IValidator<CreateHorseRequest> createValidator, IValidator<UpdateHorseRequest> updateValidator, IValidator<RetireHorseRequest> retireValidator)
+    {
+        _service = service;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
+        _retireValidator = retireValidator;
+    }
 
     [HttpGet]
     public IActionResult GetAll([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
@@ -34,32 +44,41 @@ public class HorsesController : ControllerBase
     [HttpPost]
     public IActionResult Create([FromBody] CreateHorseRequest request)
     {
-        // ISSUE: manual validation — should be handled by FluentValidation
-        if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Length < 2)
+        var validation = _createValidator.Validate(request);
+        if (!validation.IsValid)
         {
-            return BadRequest("Name must be at least 2 characters.");
-        }
-
-        if (!request.OwnerEmail.Contains('@'))
-        {
-            return BadRequest("Owner email is invalid.");
+            return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
         }
 
         var horse = _service.Create(request);
-        // ISSUE: should return 201 Created with a Location header
-        return Ok(horse);
+        return CreatedAtAction(nameof(GetById), new { id = horse.Id }, horse);
     }
 
     [HttpPut("{id}")]
     public IActionResult Update(int id, [FromBody] UpdateHorseRequest request)
     {
+        var validation = _updateValidator.Validate(request);
+        if (!validation.IsValid)
+            return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
+
         var horse = _service.Update(id, request);
         if (horse is null)
-        {
             return NotFound();
-        }
 
         return Ok(horse);
+    }
+
+    [HttpPost("{id}/retire")]
+    public IActionResult Retire(int id, [FromBody] RetireHorseRequest request)
+    {
+        var validation = _retireValidator.Validate(request);
+        if (!validation.IsValid)
+            return ValidationProblem(new ValidationProblemDetails(validation.ToDictionary()));
+
+        if (_service.GetById(id) is null) return NotFound();
+
+        _service.Retire(id, request);
+        return NoContent();
     }
 
     [HttpDelete("{id}")]

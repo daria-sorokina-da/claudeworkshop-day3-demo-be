@@ -59,12 +59,19 @@ public class HorseService : IHorseService
         return true;
     }
 
+    public void Retire(int id, RetireHorseRequest request)
+    {
+        if (!_horses.TryGetValue(id, out var horse)) return;
+        horse.IsActive = false;
+        horse.RetirementReason = request.Reason;
+    }
+
     /// <summary>Returns horses for the specified 1-based page number.</summary>
     public IEnumerable<Horse> GetPaged(int page, int pageSize)
     {
         return _horses.Values
             .OrderBy(h => h.Id)
-            .Skip(page * pageSize)
+            .Skip((page - 1) * pageSize)
             .Take(pageSize);
     }
 }
