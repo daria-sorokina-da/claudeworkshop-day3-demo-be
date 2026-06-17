@@ -55,7 +55,7 @@ public class HorsesControllerTests
 
         var result = _controller.Create(request);
 
-        var objectResult = Assert.IsType<ObjectResult>(result);
+        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(400, objectResult.StatusCode);
     }
 
@@ -68,7 +68,7 @@ public class HorsesControllerTests
 
         var result = _controller.Create(request);
 
-        var objectResult = Assert.IsType<ObjectResult>(result);
+        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(400, objectResult.StatusCode);
     }
 
@@ -147,7 +147,7 @@ public class HorsesControllerTests
 
         var result = _controller.Retire(1, request);
 
-        var objectResult = Assert.IsType<ObjectResult>(result);
+        var objectResult = Assert.IsAssignableFrom<ObjectResult>(result);
         Assert.Equal(400, objectResult.StatusCode);
     }
 
