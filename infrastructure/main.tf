@@ -1,8 +1,8 @@
 # Infrastructure requirements (describe to Claude and ask it to generate the resources below):
 #
-#  - Azure Resource Group in uksouth
-#  - Linux App Service Plan (B1 SKU)
-#  - .NET 8 Web App wired to the plan
+#  - Look up the existing Resource Group and Windows App Service Plan by name
+#    (use data sources, do not create new ones)
+#  - Windows App Service (.NET 8) wired to the existing plan
 #  - App setting: ASPNETCORE_ENVIRONMENT = Staging
 #  - Output the API hostname
 

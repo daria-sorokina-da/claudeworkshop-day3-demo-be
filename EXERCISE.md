@@ -16,7 +16,7 @@ Every part maps back to the workshop theory:
 |---|---|
 | 0 — Setup | Setup check · essential commands · Git safety net |
 | 1 — Onboard & harness | Prompting (precise) · Plan mode · `/init` · CLAUDE.md · `@import` · Permissions · Context management · Mermaid diagram |
-| 2 — Ship & debug | Agentic loop · Spec → test workflow · Jira MCP (ticket lifecycle) · Hooks · `/rewind` · Red-test debugging · Git workflow & PR description |
+| 2 — Ship & debug | Agentic loop · Spec → test workflow · Atlassian Rovo MCP (ticket lifecycle) · Hooks · `/rewind` · Red-test debugging · Git workflow & PR description |
 | 3 — Build a team toolkit | Skills · Slash commands · Hooks (Post + PreToolUse) |
 | 4 — Orchestrate sub-agents | Sub-agents (sequential + parallel) · Model selection & cost |
 | Optional extras | GitHub MCP · Azure deploy (DevOps pipeline) · Headless mode · EF Core/SQLite · Plugins |
@@ -29,14 +29,14 @@ Every part maps back to the workshop theory:
 
 | Time | Part | Minutes |
 |---|---|---|
-| 0:00 | **Part 0** — Setup & ground rules | 10 |
-| 0:10 | **Part 1** — Onboard and harness the repo | 50 |
-| 1:00 | **Part 2** — Ship a feature, then fix a real bug | 65 |
-| 2:05 | **Break** | 15 |
-| 2:20 | **Part 3** — Build your team toolkit | 35 |
-| 2:55 | **Part 4** — Orchestrate sub-agents to ship a feature | 25 |
-| 3:20 | Wrap-up | 5 |
-| 3:25 | **Optional extras** | remaining time |
+| 10:30 | **Part 0** — Setup & ground rules | 10 |
+| 10:40 | **Part 1** — Onboard and harness the repo | 55 |
+| 11:35 | **Part 2** — Ship a feature, then fix a real bug | 75 |
+| 12:50 | **Break** | 15 |
+| 13:05 | **Part 3** — Build your team toolkit | 35 |
+| 13:40 | **Part 4** — Orchestrate sub-agents to ship a feature | 25 |
+| 14:05 | Wrap-up | 5 |
+| 14:10 | **Optional extras** | remaining time |
 
 ---
 
@@ -82,7 +82,7 @@ If anything fails to build, fix it before moving on — raise your hand.
 
 ---
 
-## Part 1 — Onboard and harness the repo (50 min)
+## Part 1 — Onboard and harness the repo (55 min)
 
 **Goal:** Go from cold start to a repo that hands every future session the right context automatically. You'll get oriented fast, use plan mode to look before you leap, then make that knowledge permanent in `CLAUDE.md`.
 
@@ -153,7 +153,7 @@ First see what `/init` does — it scans the codebase and proposes CLAUDE.md con
 /init
 ```
 
-Review its proposal in the diff. **Keep the `@import` line and our section headings** (Architecture, Domain Model, Test Patterns); accept the useful factual content and discard anything generic or wrong. If `/init` strays too far from the curated stub, run `git checkout CLAUDE.md` to reset and fill it deliberately instead:
+Review its proposal in the diff. **Keep the `@import` line and our section headings** (Architecture, Domain Model, Test Patterns); accept the useful factual content and discard anything generic or wrong. If `/init` strays too far from the curated stub, run `/rewind` to undo its changes (conversation *and* file) and fill it deliberately instead:
 
 ```
 Explore the project and fill in the Architecture, Domain Model, and
@@ -183,6 +183,49 @@ Add a comment line to src/StableApi/appsettings.Production.json.
 
 ✅ **Acceptance:** Claude is blocked by the `deny` rule — it never gets the chance, regardless of what you ask. Telling Claude "don't touch prod" in a prompt is advice; `deny` in settings is enforcement by the harness.
 
+### 1.6 — Wire up a local MCP server (5 min)
+
+MCP (Model Context Protocol) is how Claude connects to external tools. You've already seen *connectors* (OAuth-based, configured in claude.ai settings — you'll use the Atlassian one in Part 2.1). A **local MCP server** is the other flavour: a process that runs on your machine, configured in `.mcp.json` at the repo root.
+
+Create `.mcp.json` now with the **Microsoft Learn MCP server** — a remote endpoint that gives Claude access to official .NET, ASP.NET Core, and Azure documentation. No token, no `npx`, no local process:
+
+```json
+{
+  "mcpServers": {
+    "microsoft-docs": {
+      "type": "http",
+      "url": "https://learn.microsoft.com/api/mcp"
+    }
+  }
+}
+```
+
+Restart Claude Code (so it picks up the new config), then confirm it loaded:
+
+```
+/mcp
+```
+
+You should see `microsoft-docs` listed as connected. Now put it to work on something you'll actually need in Part 2:
+
+```
+Using the microsoft-docs MCP, look up how to register FluentValidation validators
+with ASP.NET Core's DI container — specifically the AddValidatorsFromAssembly
+pattern. Summarise the registration call and where it goes in Program.cs.
+```
+
+✅ **Acceptance:** `/mcp` shows `microsoft-docs` connected, and Claude returns accurate registration guidance straight from the official docs — not from training data. You'll use FluentValidation in Parts 2.2 and 2.4, so this is live, useful context.
+
+> **Three MCP config patterns — at a glance:**
+> | | Connector | Remote server | Local server |
+> |---|---|---|---|
+> | Example | Atlassian, GitHub | Microsoft Learn | GitHub (Option B), Azure DevOps |
+> | Auth | OAuth via claude.ai | Usually none | Token / env var |
+> | Config | claude.ai Settings | `"type": "http"` in `.mcp.json` | `"command"` + `"args"` in `.mcp.json` |
+> | Runs where | Anthropic's cloud | Provider's cloud | Your machine |
+>
+> All three expose the same tool-call interface to Claude — the choice is purely about where the server runs and how auth is managed.
+
 > **Context check:** Run `/usage`. If you're climbing past ~60%, `/compact` now while recall is still clean before starting Part 2.
 
 > **Commit checkpoint:** `git add . && git commit -m "docs: NOVA-NONE: Document architecture and test patterns in CLAUDE.md"`
@@ -195,12 +238,23 @@ Add a comment line to src/StableApi/appsettings.Production.json.
 
 ### 2.1 — Plan the feature first (10 min)
 
-> **Optional — start from the ticket (Jira MCP).** In real work the spec comes from a story, not a prompt. If the Atlassian MCP is set up, pull the retire endpoint's requirements from Jira instead of reading them below.
-> *Setup (facilitator):* a throwaway workshop story, e.g. `NOVA-####`, with acceptance criteria, and the Atlassian MCP added to `.mcp.json` — `{"mcpServers":{"atlassian":{"type":"sse","url":"https://mcp.atlassian.com/v1/sse"}}}` — authenticated via `/mcp`. If you use a real ticket, put its number in your branch and commits (`feature: NOVA-1234: …`) instead of `NOVA-NONE`.
+> **Optional — start from the ticket (Atlassian Rovo MCP).** In real work the spec comes from a story, not a prompt. The Atlassian Rovo MCP is a **cloud connector** built into claude.ai — no `.mcp.json` or local server needed. If it's enabled on your account, it's available in every session automatically.
+>
+> **Install & connect (do this once before 2.1):**
+>
+> 1. Open **[claude.ai](https://claude.ai)** in a browser and sign in.
+> 2. Click your profile avatar (bottom-left) → **Settings** → **Integrations**.
+> 3. Find **Atlassian** in the list and click **Connect**. A browser pop-up will open for Atlassian OAuth — sign in with your Atlassian account and grant access.
+> 4. Once the pop-up closes, the integration status should show **Connected**.
+> 5. Back in Claude Code, restart the session so the connector is picked up, then run `/mcp` — you should see `claude_ai_Atlassian_Rovo` listed as connected.
+>
+> The facilitator will share a throwaway workshop Jira story (`NOVA-####`) with acceptance criteria. If you use a real ticket, put its number in your branch and commits (`feature: NOVA-1234: …`) instead of `NOVA-NONE`.
+>
 > ```
-> Read Jira ticket NOVA-#### with the Atlassian MCP and summarise its
+> Read Jira ticket NOVA-#### with the Atlassian Rovo MCP and summarise its
 > acceptance criteria — we'll build against these.
 > ```
+>
 > No Jira set up? Just use the spec in the prompt below.
 
 ```
@@ -216,17 +270,44 @@ Approve once the plan is scoped and sensible.
 
 ### 2.2 — Build it (20 min)
 
-You don't have to dictate it layer by layer — hand Claude the whole slice from the plan and review the diffs as they land:
+Build the retire endpoint layer by layer — each sub-step is a focused prompt, a reviewable diff, and a commit before you move on.
+
+#### 2.2.1 — Domain layer
 
 ```
-Implement the retire endpoint from the plan: a RetireRequest DTO, a Retire
-method on IHorseService/HorseService (mark the horse inactive, store the
-reason), the controller action (200 with the updated horse, or 404), and a
-FluentValidation RetireRequestValidator (Reason 5–200 chars) registered in
-Program.cs.
+Add the domain layer for the retire endpoint:
+- RetireRequest DTO with a Reason string
+- Retire(int id, RetireRequest) method on IHorseService and HorseService
+  (mark the horse inactive, store the reason; return null if not found)
+Don't touch the controller or validation yet.
 ```
 
-Watch the **format hook** fire after each `src` edit, and read each diff before accepting — small, reviewable changes even though the prompt was one line.
+> **Commit checkpoint:** `git add . && git commit -m "feature: NOVA-NONE: Add Retire method to HorseService"`  
+> Then `/clear` to start fresh for the next layer.
+
+#### 2.2.2 — HTTP layer
+
+```
+Add the controller action for POST /api/horses/{id}/retire:
+- Returns 200 with the updated horse on success
+- Returns 404 if the horse does not exist
+The domain layer (RetireRequest DTO + HorseService.Retire) is already in place.
+```
+
+> **Commit checkpoint:** `git add . && git commit -m "feature: NOVA-NONE: Add retire controller action"`  
+> Then `/clear`.
+
+#### 2.2.3 — Validation
+
+```
+Add FluentValidation for the retire endpoint:
+- RetireRequestValidator: Reason must be 5–200 chars
+- Register via AddValidatorsFromAssembly in Program.cs
+```
+
+> **Commit checkpoint:** `git add . && git commit -m "feature: NOVA-NONE: Add RetireRequestValidator"`
+
+Watch the **format hook** fire after each `src` edit, and read each diff before accepting.
 
 > **Try `/rewind`:** don't like an edit Claude just made? Run `/rewind` to roll back the last action — conversation *and* file changes — with no Git needed. Undo one step, then re-prompt it more precisely. (Git checkpoints are for milestones; `/rewind` is for in-the-moment undo.)
 
@@ -296,15 +377,61 @@ Now fix the bug so the test passes.
 > ```
 > In real work you'd push the feature branch and open the PR in GitHub (reviewed via reviewable.io, merged with **Rebase and Delete** to keep history linear). We're not pushing to the shared repo during the lab — drafting the description is the exercise.
 
-> **Optional — close the ticket loop (Jira MCP).** If you read the spec from Jira in 2.1, now move the story along the way you would after raising a PR (use a throwaway ticket — these prompts actually change it):
+> **Optional — close the ticket loop (Atlassian Rovo MCP).** If you read the spec from Jira in 2.1, now move the story along the way you would after raising a PR (use a throwaway ticket — these prompts actually change it):
 > ```
-> Transition NOVA-#### to "Ready for Review" using the Atlassian MCP.
+> Transition NOVA-#### to "Ready for Review" using the Atlassian Rovo MCP.
 > ```
 > ```
 > Add a comment to NOVA-#### summarising the implementation: the endpoint
 > added, validation rules, tests, and a link to the PR.
 > ```
 > If the transition errors, the status name must match a real workflow transition — ask Claude to list the available ones first. Verify the status and comment in Jira.
+
+### 2.6 — Generate the CI/CD pipeline (10 min)
+
+Code that can't be built and deployed automatically isn't done. Generate the Azure DevOps pipeline YAML using the Microsoft Learn MCP you wired up in 1.6 — so the syntax comes from the official docs, not from training-data guesses.
+
+**Build pipeline (CI).** Ask Claude to look up the right tasks first, then generate the file:
+
+```
+Using the microsoft-docs MCP, look up the Azure DevOps pipeline tasks for
+building and testing a .NET 8 app: DotNetCoreCLI@2 restore, build, test,
+and publish. Then create azure-pipelines.yml that:
+- triggers on main and any feature/* branch
+- restores, builds (--no-restore), and tests (--no-build, publish results
+  as JUnit XML) in a single Build stage
+- publishes the API as a pipeline artifact named 'drop'
+Use the YAML syntax exactly as the docs show it.
+```
+
+Review the generated YAML — confirm the task versions and argument flags match what the MCP returned, not what you'd expect from memory.
+
+**Release stage (CD).** Extend the same file with a deployment stage:
+
+```
+Add a Deploy stage to azure-pipelines.yml that:
+- depends on the Build stage
+- runs only on main
+- downloads the 'drop' artifact and deploys it to the Azure App Service
+  defined in infrastructure/main.tf (project name variable: 'stable-api',
+  region: uksouth) using the AzureWebApp@1 task
+- uses a service connection named 'azure-sandbox' (variable so it can be
+  overridden)
+Look up the AzureWebApp@1 task signature in the microsoft-docs MCP first.
+```
+
+**Validate it without running it:**
+
+```
+Run `az pipelines validate --yaml-path azure-pipelines.yml` and fix any
+errors it reports. Don't change anything else.
+```
+
+✅ **Acceptance:** `azure-pipelines.yml` exists with a two-stage pipeline — Build (runs on every branch) and Deploy (runs on main only). `az pipelines validate` exits cleanly. The task versions and flags came from the official docs via MCP, not from guesswork. In a real project you'd commit this alongside the feature and the pipeline would trigger automatically on merge.
+
+> **Commit checkpoint:** `git add azure-pipelines.yml && git commit -m "chore: NOVA-NONE: Add CI/CD pipeline for build and deploy"`
+
+> **To actually run the pipeline** — queue it in Azure DevOps and watch it deploy — see the *Deploy to Azure App Service* section in Optional extras. That step needs an Azure subscription and service connection set up by the facilitator.
 
 ---
 
@@ -424,7 +551,7 @@ Add a `PreToolUse` block alongside the existing `PostToolUse` in `hooks`:
 ]
 ```
 
-Test it: ask Claude to write a fake AWS key (`AKIAIOSFODNN7EXAMPLE`) into a source file. The hook blocks the write, and because exit code `2` feeds the message back, Claude self-corrects instead of just failing — exactly the data-leak guardrail from the theory session.
+Test it: ask Claude to write a fake private key (`-----BEGIN RSA PRIVATE KEY-----`) into a source file. The hook blocks the write, and because exit code `2` feeds the message back, Claude self-corrects instead of just failing — exactly the data-leak guardrail from the theory session.
 
 ---
 
@@ -533,13 +660,50 @@ Before you stop: commit any loose work on your `nova-none-stables-workshop` bran
 
 You've done the core. These are the high-ceiling add-ons — pick whatever appeals; none depends on the others. The first three need a little setup.
 
-### Action PR review comments with the GitHub MCP — *needs setup*
+### Action PR review comments with the GitHub connector — *needs setup*
 
 MCP is "USB for AI tools": one standard, any tool. The real payoff is closing the review loop — your PR comes back with comments, and instead of copy-pasting each one, Claude reads them straight from GitHub and fixes them.
 
-> **Setup needed before this step (facilitator):** a GitHub repo holding the Stables code with **an open PR that already carries a few review comments** (e.g. *"GetById should return 404 for a missing horse"*, *"replace the manual validation with FluentValidation"*). Each participant needs a **GitHub personal access token** (repo scope) exported as `GITHUB_TOKEN`. Tokens go in `~/.claude.json` or your shell env — never committed.
+There are two ways to connect GitHub — **connector** (zero local setup, OAuth) or **local MCP server** (token-based, works offline). Start with the connector; fall back to the server if OAuth isn't available.
 
-Add a project-level `.mcp.json` at the repo root with the GitHub server (use the `${GITHUB_TOKEN}` placeholder — never paste the token itself):
+> **Setup needed before this step (facilitator):** a GitHub repo holding the Stables code with **an open PR that already carries a few review comments** (e.g. *"GetById should return 404 for a missing horse"*, *"replace the manual validation with FluentValidation"*).
+
+#### Option A — GitHub connector (recommended, no token needed)
+
+The GitHub connector is a **cloud connector** built into claude.ai — no `.mcp.json` or local server needed. Once connected, it's available in every Claude Code session automatically.
+
+**Install & connect (do this once):**
+
+1. Open **[claude.ai](https://claude.ai)** in a browser and sign in.
+2. Click your profile avatar (bottom-left) → **Settings** → **Integrations**.
+3. Find **GitHub** in the list and click **Connect**. A browser pop-up will open for GitHub OAuth — sign in with your GitHub account and grant access to the repos you need.
+4. Once the pop-up closes, the integration status should show **Connected**.
+5. Back in Claude Code, restart the session so the connector is picked up, then run `/mcp` — you should see `claude_ai_GitHub` listed as connected.
+
+Then have Claude pull the review comments and address them:
+
+```
+Read the open review comments on PR #<number> in <owner>/<repo> using the
+GitHub connector. List each comment, then fix the code it refers to — one
+commit per comment, message format: fix: NOVA-NONE: <what you changed>.
+Don't push; I'll review the diffs first.
+```
+
+Optionally, have Claude reply to each thread so the PR shows what was done:
+
+```
+Reply to each of those review comments on the PR summarising the fix you made.
+```
+
+✅ **Acceptance:** `/mcp` lists `claude_ai_GitHub`, Claude reads the actual PR comments, and each one maps to a local fix you reviewed. Same tool-call loop as the local server — the connector just handles auth for you.
+
+#### Option B — local MCP server (token-based)
+
+Use this if the connector OAuth flow isn't available on your account, or if you want to understand how local MCP servers work.
+
+Each participant needs a **GitHub personal access token** (repo scope) exported as `GITHUB_TOKEN`. Tokens go in `~/.claude.json` or your shell env — never committed.
+
+Add a project-level `.mcp.json` at the repo root (use the `${GITHUB_TOKEN}` placeholder — never paste the token itself):
 
 ```json
 {
@@ -553,45 +717,29 @@ Add a project-level `.mcp.json` at the repo root with the GitHub server (use the
 }
 ```
 
-Restart Claude Code and run `/mcp` to confirm `github` connected. Then have Claude pull the review comments and address them — review every diff before accepting:
+Restart Claude Code and run `/mcp` to confirm `github` connected, then use the same prompts as Option A.
 
-```
-Read the open review comments on PR #<number> in <owner>/<repo> using the
-GitHub MCP. List each comment, then fix the code it refers to — one commit
-per comment, message format: fix: NOVA-NONE: <what you changed>.
-Don't push; I'll review the diffs first.
-```
+✅ **Acceptance:** `/mcp` lists the `github` server, Claude reads the actual PR comments, and each one maps to a local fix you reviewed. **No token and no OAuth?** Use the zero-credential filesystem server instead to see the wiring (`"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]`), then ask Claude to use one of its tools.
 
-Optionally, have Claude reply to each thread via MCP so the PR shows what was done:
-
-```
-Reply to each of those review comments on the PR summarising the fix you made.
-```
-
-✅ **Acceptance:** `/mcp` lists the `github` server, Claude reads the actual PR comments, and each one maps to a local fix you reviewed. The GitHub MCP tools looked identical to built-in tools from Claude's side — same tool-call loop. **No token?** Use the zero-credential filesystem server instead to see the wiring (`"command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "."]`), then ask Claude to use one of its tools.
+> **Connector vs. local server — the key difference:** a connector authenticates via OAuth through claude.ai and needs no local config; a local MCP server runs as a process on your machine and needs a token in your environment. Both expose identical tool-call interfaces to Claude — the choice is about how auth is managed, not what Claude can do.
 
 ### Deploy to Azure App Service via an Azure DevOps pipeline — *needs setup*
 
 Generate the infrastructure, then ship the app for real through a pipeline — the satisfying finish: your API live on the internet.
 
-> **Setup needed (facilitator):** an Azure subscription (a shared sandbox is fine), an Azure DevOps project holding this repo with a service connection to the subscription, and the [Azure DevOps MCP](https://learn.microsoft.com/en-us/azure/devops/mcp-server/mcp-server-overview) connected (local `npx` or the remote endpoint — see the docs). Use the cheapest tier and **`terraform destroy` afterwards** so nothing keeps billing.
+> **Setup needed (facilitator):** an Azure DevOps project holding this repo with a service connection to an existing Azure subscription, an existing Resource Group and Windows App Service Plan to deploy into (share the names with participants), and the [Azure DevOps MCP](https://learn.microsoft.com/en-us/azure/devops/mcp-server/mcp-server-overview) connected (local `npx` or the remote endpoint — see the docs).
 
-First the infrastructure — App Service only, no database:
+First the infrastructure — a single Windows App Service wired to the existing plan, no new resource group or plan created:
 
 ```
 Read the requirements comment in infrastructure/main.tf and generate the
-Azure resources with variables from variables.tf: resource group, Linux
-App Service plan, and the .NET 8 web app. Add a random suffix to globally
-unique names. Run terraform init and terraform plan, and show me the plan.
+Terraform using data sources to look up the existing Resource Group and
+Windows App Service Plan by name (from variables.tf). Create only a Windows
+.NET 8 App Service wired to that plan. Add a random suffix to the app name.
+Run terraform init and terraform plan, and show me the plan.
 ```
 
-Review the HCL — *you* own the security sign-off — then apply it (facilitator, against the sandbox subscription). Now the pipeline. Have Claude write the build-and-deploy definition:
-
-```
-Create azure-pipelines.yml that builds and publishes the .NET 8 API and
-deploys it to our App Service with the AzureWebApp task, using our service
-connection. Trigger on the main branch.
-```
+Review the HCL — *you* own the security sign-off — then apply it (facilitator, against the shared subscription). Now queue the pipeline Claude generated in 2.6:
 
 Then use the Azure DevOps MCP to run it and report back:
 
